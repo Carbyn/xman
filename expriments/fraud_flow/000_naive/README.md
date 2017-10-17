@@ -3,11 +3,12 @@
 
 ## Features
 
-1. 点击数量（soft margin的直方图）
-2. 4xx数量 / 点击数量
-3. 有referer数量
-4. PV
-5. 请求间隔
-6. HEAD / (GET + HEAD)
-7. PV(index + 主要二级) / PV
-8. PV(hao123_api) / PV
+|特征|计算方法|
+|---|-----|
+|1，click num / PV| urlpre为j.php 的请求量/总请求量
+|2，4xx percent|statuscode=4xx的请求量/总请求量
+|3，Referer|referer不为空的请求量/总请求量
+|5，query_interval|两个请求之间间隔时间的平均值/一小时
+|6，Head/(Get+Head)|HEAD的请求量/总请求量
+|7，PV(index+channel)/PV|pv=(urlpre 不是hao123_api 或者hao123_app的请求量),max(pv(i))/pv 
+|8，PV(hao123_api)/PV|urlpre为hao123_api的请求量/总请求量
