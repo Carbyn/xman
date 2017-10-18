@@ -3,16 +3,16 @@
 import sys
 import json
 
-LOG_FORMAT = '$remote_addr - $remote_user [$time_local] "$request" ' + \
-             '$status $body_bytes_sent "$http_referer" "$http_cookie $sent_http_set_cookie" ' + \
-             '"$http_user_agent" $http_host $request_time'
-
 if len(sys.argv) != 3:
     print('parse_log.py SRC_PATH DST_PATH')
     exit(-1)
 
 input_file = sys.argv[1]
 output_file = sys.argv[2]
+
+LOG_FORMAT = '$remote_addr - $remote_user [$time_local] "$request" ' + \
+             '$status $body_bytes_sent "$http_referer" "$http_cookie $sent_http_set_cookie" ' + \
+             '"$http_user_agent" $http_host $request_time'
 
 i, formats = 0, []
 while i < len(LOG_FORMAT):
