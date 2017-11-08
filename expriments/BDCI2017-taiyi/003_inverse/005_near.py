@@ -11,6 +11,7 @@ for seg_line in seg_reader:
     segs = seg_line.strip().split('|')
     topics, emotions, ranks = map(lambda x: x.split(';'), rst_line.strip().split(','))
     map_topics, map_emotions, map_ranks = [], [], []
+    pairs = {}
     for idx, emotion in enumerate(emotions):
         if len(emotion) == 0:
             continue
@@ -50,6 +51,9 @@ for seg_line in seg_reader:
                             map_emotion = u'不' + map_emotion
                             map_rank = 0 - map_rank
                             break
+                if (topic, map_emotion) in pairs:
+                    continue
+                pairs[(topic, map_emotion)] = True
                 map_topics.append(topic)
                 map_emotions.append(map_emotion)
                 map_ranks.append(str(map_rank))
