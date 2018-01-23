@@ -1,8 +1,10 @@
 import paddle.v2 as paddle
 import math
+
+
 def fc_net(dict_dim,
-           class_num = 2,
-           hidden_layer_sizes=[2048,1024,512,128,64,16,8],
+           class_num=2,
+           hidden_layer_sizes=[2048, 1024, 512, 128, 64, 16, 8],
            is_infer=False):
 
     data = paddle.layer.data("video",
@@ -31,6 +33,8 @@ def fc_net(dict_dim,
     else:
         return paddle.layer.classification_cost(
             input=prob, label=lbl), prob, lbl
+
+
 def conv_net(dict_dim,
                     class_dim=2,
                     hid_dim=128,
@@ -42,7 +46,6 @@ def conv_net(dict_dim,
     if not is_infer:
         lbl = paddle.layer.data("label",
                                 paddle.data_type.integer_value(class_dim))
-
 
     # convolution layers with max pooling
     conv_3 = paddle.networks.sequence_conv_pool(name='conv_1',
@@ -60,11 +63,13 @@ def conv_net(dict_dim,
         cost = paddle.layer.classification_cost(input=prob, label=lbl)
 
         return cost, prob, lbl
+
+
 def lstm_net(input_dim,
                      class_dim=2,
                      hid_dim=512,
                      stacked_num=3,
-                     is_predict=False):
+                     is_infer=False):
     assert stacked_num % 2 == 1
 
     fc_para_attr = paddle.attr.Param(learning_rate=1e-3)
@@ -106,8 +111,8 @@ def lstm_net(input_dim,
                              bias_attr=bias_attr,
                              param_attr=para_attr)
 
-    if not is_predict:
-        lbl = paddle.layer.data("label", paddle.data_type.integer_value(2))
+    if not is_infer:
+        lbl = paddle.layer.data("label", paddle.data_type.integer_value(class_dim))
         cost = paddle.layer.classification_cost(input=output, label=lbl)
         return cost, output, lbl
     else:

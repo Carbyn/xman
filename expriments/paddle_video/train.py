@@ -2,18 +2,21 @@ from network import lstm_net
 from reader import reader_creator 
 import paddle.v2 as paddle
 import gzip
+import sys
 import math
+
+
 def train():
     dict_dim = 2048
     num_passes = 100
-    window_len = 30
-    model_path = "model/video_cnn_lstm.tar.gz"
-    paddle.init(use_gpu=False, trainer_count=2)                                                                       
+    window_len = 30 
+    model_path = "model/video_lstm" + str(window_len) + ".tar.gz"
+    paddle.init(use_gpu=False, trainer_count=1)                                                                       
 
     # network config                                                                                                  
-    cost, prob, label =lstm_net(dict_dim)
+    cost, prob, label = lstm_net(dict_dim, class_dim=2)
 
-    if os.path.exists(model_path) :
+    if os.path.exists(model_path):
         with gzip.open(model_path, 'r') as f:
             parameters = paddle.parameters.Parameters.from_tar(f)
     else:
@@ -32,6 +35,7 @@ def train():
 
     # begin training network                                                                                          
     feeding = {"video": 0, "label": 1}                                                                                 
+
     def _event_handler(event):
         """
         Define end batch and end pass event handler                                                                   
@@ -42,16 +46,17 @@ def train():
                     event.pass_id, event.batch_id, event.cost, event.metrics)
 
         if isinstance(event, paddle.event.EndPass):                                                                   
-            result = trainer.test(reader=paddle.batch(reader_creator('validation',window_len),256), feeding=feeding)                                            
-            print "Test at Pass %d, %s \n" % (event.pass_id,                                                
-                                                        result.metrics)                                              
+            print "Save model"                                                
             with gzip.open(model_path, "w") as f:                                                           
-                parameters.to_tar(f)                                                                      
+                parameters.to_tar(f)   
+            if event.pass_id % 1 == 0:                                                                             
+                print 'Test start'
+                result = trainer.test(reader=paddle.batch(reader_creator('validation', window_len, class_num=2), 256), feeding=feeding)                                            
+                print "Test at Pass %d, %s \n" % (event.pass_id, result.metrics)                                              
 
     trainer.train(
-        reader=paddle.batch(paddle.reader.shuffle(reader_creator('training',window_len),1024),256),
+        reader=paddle.batch(paddle.reader.shuffle(reader_creator('training', window_len, class_num=2), 1024), 256),
         event_handler=_event_handler,
         feeding=feeding,
         num_passes=num_passes)
 train()
-
