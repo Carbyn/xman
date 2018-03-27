@@ -4,8 +4,10 @@ import os
 import csv
 import pandas as pd
 import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.models import Model
+from keras.layers import Input, Dense, Activation
+from keras.layers.recurrent import GRU
+from keras.layers.merge import add, concatenate
 from keras.optimizers import SGD
 from keras import losses
 
@@ -45,53 +47,64 @@ def read_csv(path):
     tempdata = pd.read_csv(path, header=None, low_memory=False)
     return tempdata
 
-def fit_reader():
-    data = np.array(read_csv(path_train))
-    label = data[1:, -1]
-    data = data[1:, [1,3,4,5,6,7,8]]
-    data = np.array([normalize(row) for row in data])
-    return data, label
+def fit_rnn_reader():
+    data = np.array(read_csv(path_train))[1:]
+    dct = {}
+    for item in data:
+        if item[0] not in dct.keys():
+            dct[item[0]] = []
+        dct[item[0]].append(np.append(normalize(np.array(item)[[1,3,4,5,6,7,8]]), float(item[-1])))
+    data = np.array(list(dct.values()))
+    return data[:,:,:-1], data[:,:,-1]
 
-def fc2():
-    model = Sequential()
-    model.add(Dense(32, input_shape=(7,)))
-    model.add(Activation('relu'))
-    model.add(Dense(1))
+def predict_rnn_reader():
+    from collections import defaultdict
+    data = np.array(read_csv(path_test))[1:]
+    dct = defaultdict(list)
+    for item in data:
+        dct[item[0]].append(normalize(np.array(item)[[0,1,3,4,5,6,7,8]]))
+    data = np.array(dct.values())
+    return data
+
+def gru2(rnn_size=512):
+    input_data = Input(name='the_input', shape=(None, 7), dtype='float32')
+    inner = Dense(32, activation='relu', name='inner')(input_data)
+    gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
+    gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
+    gru1_merged = add([gru_1, gru_1b])
+    gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
+    gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
+    output = Dense(1, kernel_initializer='he_normal', name='dense2')(concatenate([gru_2, gru_2b]))
+    model = Model(inputs=input_data, outputs=output) 
     model.summary()
-    return model
+    return model 
 
 def train():
     print('Train...')
-    x_train, y_train = fit_reader()
+    x_train, y_train = fit_rnn_reader()
     print(x_train.shape[0], 'train samples')
-    model = fc2()
-    sgd = SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True)
+    model = gru2()
+    sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
-    model.fit(x_train, y_train, batch_size=256, epochs=200, verbose=1)
+    model.fit(x_train, y_train, batch_size=256, epochs=20, verbose=1)
     return model
+
+def output(scores):
+    print('Output...')
+    with(open(os.path.join(path_test_out, "test.csv"), mode="w")) as outer:
+        writer = csv.writer(outer)
+        writer.writerow(["Id", "Pred"])
+        for Id, score in scores:
+            writer.writerow([Id, score])
 
 def predict(model):
     print('Predict...')
-    with open(path_test) as lines:
-        with(open(os.path.join(path_test_out, "test.csv"), mode="w")) as outer:
-            writer = csv.writer(outer)
-            i = 0
-            ret_set = set([])
-            for line in lines:
-                if i == 0:
-                    i += 1
-                    writer.writerow(["Id", "Pred"])
-                    continue
-                item = line.split(",")
-                if item[0] in ret_set:
-                    continue
-
-                Id = item[0]
-                item = np.array([normalize(np.array(item)[[1,3,4,5,6,7,8]])])
-                score = model.predict(item)
-                writer.writerow([Id, score[0]])
-
-                ret_set.add(Id)
+    x_pred = predict_rnn_reader()
+    scores = []
+    for item in x_pred:
+        score = model.predict(item[:, 1:])
+        scores.append([item[0][0], score])
+    output(scores)
 
 def process():
     model = train()
