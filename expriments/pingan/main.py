@@ -14,7 +14,9 @@ from keras import losses
 path_train = "/data/dm/train.csv"
 path_test = "/data/dm/test.csv"
 
+debug = False
 if len(sys.argv) > 1 and sys.argv[1] == 'debug':
+    debug = True
     path_train = "train.csv"
     path_test = "test.csv"
 
@@ -45,6 +47,11 @@ def normalize(row):
     return row
 
 def data_reader(path, is_pred=False):
+    def padding(x, size=700):
+        if len(x) < size:
+            x += (size - len(x)) * [[0,0,0,0,0,0,0]]
+        return x[:size]
+
     while 1:
         f = open(path)
         i = 0
@@ -59,20 +66,20 @@ def data_reader(path, is_pred=False):
             if cur_id == 0:
                 cur_id = item[0]
             if item[0] != cur_id:
-                if len(x) < 700:
-                    x += (700 - len(x)) * [[0,0,0,0,0,0,0]]
+                x = padding(x)
                 if is_pred:
-                    yield (np.array(x)[:700], cur_id)
+                    yield (x, cur_id)
                 else:
-                    yield (x[:700], y)
+                    yield (x, y)
                 x = []
                 cur_id = item[0]
             x.append(normalize(np.array(item)[[1,3,4,5,6,7,8]]))
             if not is_pred:
                 y = float(item[-1])
+
         f.close()
         if is_pred:
-            yield (np.array(x)[:700], cur_id)
+            yield (padding(x), cur_id)
             break
 
 def fit_data_reader(batch_size=256):
@@ -98,7 +105,8 @@ def gru2(rnn_size=128):
     flatten = Flatten()(concatenate([gru_2, gru_2b]))
     output = Dense(1, kernel_initializer='he_normal', name='output')(flatten)
     model = Model(inputs=input_data, outputs=output)
-    model.summary()
+    if debug:
+        model.summary()
     return model
 
 def train():
@@ -113,10 +121,12 @@ def predict(model):
     print('Predict...')
     scores = []
     for x_pred, Id in data_reader(path_test, is_pred=True):
-        print('In...')
         score = model.predict(np.array([x_pred]))
-        print(Id, score[0][0])
-        scores.append([Id, score[0][0]])
+        score = score[0][0]
+        score = max(0, score)
+        if debug:
+            print(Id, score)
+        scores.append([Id, score])
     return scores
 
 def output(scores):
