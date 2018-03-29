@@ -1,6 +1,6 @@
 # -*- coding:utf8 -*-
 from __future__ import print_function
-import os
+import os,sys
 import csv
 import pandas as pd
 import numpy as np
@@ -14,8 +14,9 @@ from keras import losses
 path_train = "/data/dm/train.csv"
 path_test = "/data/dm/test.csv"
 
-#path_train = "train.csv"
-#path_test = "test.csv"
+if len(sys.argv) > 1 and sys.argv[1] == 'debug':
+    path_train = "train.csv"
+    path_test = "test.csv"
 
 path_test_out = "model/"
 
@@ -42,10 +43,6 @@ def normalize(row):
     row[6] = minMaxNormalization(float(row[6]), 0, 4)
 
     return row
-
-def read_csv(path):
-    tempdata = pd.read_csv(path, header=None, low_memory=False)
-    return tempdata
 
 def data_reader(path, is_pred=False):
     while 1:
@@ -109,16 +106,8 @@ def train():
     model = gru2()
     sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
-    model.fit_generator(fit_data_reader(32), steps_per_epoch=50000, epochs=1, verbose=1)
+    model.fit_generator(fit_data_reader(32), steps_per_epoch=100, epochs=10, verbose=1)
     return model
-
-def output(scores):
-    print('Output...')
-    with(open(os.path.join(path_test_out, "test.csv"), mode="w")) as outer:
-        writer = csv.writer(outer)
-        writer.writerow(["Id", "Pred"])
-        for Id, score in scores:
-            writer.writerow([Id, score])
 
 def predict(model):
     print('Predict...')
@@ -128,13 +117,22 @@ def predict(model):
         score = model.predict(np.array([x_pred]))
         print(Id, score[0][0])
         scores.append([Id, score[0][0]])
-    output(scores)
+    return scores
+
+def output(scores):
+    print('Output...')
+    with(open(os.path.join(path_test_out, "test.csv"), mode="w")) as outer:
+        writer = csv.writer(outer)
+        writer.writerow(["Id", "Pred"])
+        for Id, score in scores:
+            writer.writerow([Id, score])
 
 def process():
     model = train()
-    predict(model)
+    scores = predict(model)
+    output(scores)
     print('Done')
 
 if __name__ == "__main__":
-    print("****************** start **********************")
+    print('Main...')
     process()
