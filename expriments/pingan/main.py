@@ -5,7 +5,7 @@ import csv
 import pandas as pd
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, Dense, Activation
+from keras.layers import Input, Dense, Activation, Masking, Flatten
 from keras.layers.recurrent import GRU
 from keras.layers.merge import add, concatenate
 from keras.optimizers import SGD
@@ -14,8 +14,8 @@ from keras import losses
 path_train = "/data/dm/train.csv"
 path_test = "/data/dm/test.csv"
 
-path_train = "train.csv"
-path_test = "test.csv"
+#path_train = "train.csv"
+#path_test = "test.csv"
 
 path_test_out = "model/"
 
@@ -47,46 +47,69 @@ def read_csv(path):
     tempdata = pd.read_csv(path, header=None, low_memory=False)
     return tempdata
 
-def fit_rnn_reader():
-    data = np.array(read_csv(path_train))[1:]
-    dct = {}
-    for item in data:
-        if item[0] not in dct.keys():
-            dct[item[0]] = []
-        dct[item[0]].append(np.append(normalize(np.array(item)[[1,3,4,5,6,7,8]]), float(item[-1])))
-    data = np.array(list(dct.values()))
-    return data[:,:,:-1], data[:,:,-1]
+def data_reader(path, is_pred=False):
+    while 1:
+        f = open(path)
+        i = 0
+        cur_id = 0
+        x = []
+        y = 0
+        for line in f:
+            i += 1
+            if i == 1:
+                continue
+            item = line.split(',')
+            if cur_id == 0:
+                cur_id = item[0]
+            if item[0] != cur_id:
+                if len(x) < 700:
+                    x += (700 - len(x)) * [[0,0,0,0,0,0,0]]
+                if is_pred:
+                    yield (np.array(x)[:700], cur_id)
+                else:
+                    yield (x[:700], y)
+                x = []
+                cur_id = item[0]
+            x.append(normalize(np.array(item)[[1,3,4,5,6,7,8]]))
+            if not is_pred:
+                y = float(item[-1])
+        f.close()
+        if is_pred:
+            yield (np.array(x)[:700], cur_id)
+            break
 
-def predict_rnn_reader():
-    from collections import defaultdict
-    data = np.array(read_csv(path_test))[1:]
-    dct = defaultdict(list)
-    for item in data:
-        dct[item[0]].append(normalize(np.array(item)[[0,1,3,4,5,6,7,8]]))
-    data = np.array(dct.values())
-    return data
+def fit_data_reader(batch_size=256):
+    X = []
+    Y = []
+    for x,y in data_reader(path_train):
+        X.append(x)
+        Y.append(y)
+        if len(X) == batch_size:
+            yield ({'input': np.array(X)}, {'output': np.array(Y)})
+            X = []
+            Y = []
 
-def gru2(rnn_size=512):
-    input_data = Input(name='the_input', shape=(None, 7), dtype='float32')
+def gru2(rnn_size=128):
+    input_data = Input(name='input', shape=(700, 7), dtype='float32')
+    #mask = Masking(mask_value=0., input_shape=(700, 7))(input_data)
     inner = Dense(32, activation='relu', name='inner')(input_data)
     gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
     gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
     gru1_merged = add([gru_1, gru_1b])
     gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
     gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
-    output = Dense(1, kernel_initializer='he_normal', name='dense2')(concatenate([gru_2, gru_2b]))
-    model = Model(inputs=input_data, outputs=output) 
+    flatten = Flatten()(concatenate([gru_2, gru_2b]))
+    output = Dense(1, kernel_initializer='he_normal', name='output')(flatten)
+    model = Model(inputs=input_data, outputs=output)
     model.summary()
-    return model 
+    return model
 
 def train():
     print('Train...')
-    x_train, y_train = fit_rnn_reader()
-    print(x_train.shape[0], 'train samples')
     model = gru2()
     sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
-    model.fit(x_train, y_train, batch_size=256, epochs=20, verbose=1)
+    model.fit_generator(fit_data_reader(32), steps_per_epoch=50000, epochs=1, verbose=1)
     return model
 
 def output(scores):
@@ -99,11 +122,12 @@ def output(scores):
 
 def predict(model):
     print('Predict...')
-    x_pred = predict_rnn_reader()
     scores = []
-    for item in x_pred:
-        score = model.predict(item[:, 1:])
-        scores.append([item[0][0], score])
+    for x_pred, Id in data_reader(path_test, is_pred=True):
+        print('In...')
+        score = model.predict(np.array([x_pred]))
+        print(Id, score[0][0])
+        scores.append([Id, score[0][0]])
     output(scores)
 
 def process():
