@@ -93,17 +93,19 @@ def fit_data_reader(batch_size=256):
             X = []
             Y = []
 
-def gru2(rnn_size=128):
+def gru2(rnn_size=8):
     input_data = Input(name='input', shape=(700, 7), dtype='float32')
     #mask = Masking(mask_value=0., input_shape=(700, 7))(input_data)
-    inner = Dense(32, activation='relu', name='inner')(input_data)
+    inner = Dense(8, activation='relu', name='inner')(input_data)
     gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
     gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
     gru1_merged = add([gru_1, gru_1b])
     gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
     gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
     flatten = Flatten()(concatenate([gru_2, gru_2b]))
-    output = Dense(1, kernel_initializer='he_normal', name='output')(flatten)
+    dense_1 = Dense(700, kernel_initializer='he_normal', name='dense_1')(flatten)
+    dense_2 = Dense(128, kernel_initializer='he_normal', name='dense_2')(dense_1)
+    output = Dense(1, kernel_initializer='he_normal', name='output')(dense_2)
     model = Model(inputs=input_data, outputs=output)
     if debug:
         model.summary()
@@ -114,7 +116,7 @@ def train():
     model = gru2()
     sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
-    model.fit_generator(fit_data_reader(32), steps_per_epoch=100, epochs=10, verbose=1)
+    model.fit_generator(fit_data_reader(128), steps_per_epoch=100, epochs=5, verbose=1)
     return model
 
 def predict(model):
@@ -122,7 +124,7 @@ def predict(model):
     scores = []
     for x_pred, Id in data_reader(path_test, is_pred=True):
         score = model.predict(np.array([x_pred]))
-        score = score[0][0]
+        score = int(100*score[0][0])/100.0
         score = max(0, score)
         if debug:
             print(Id, score)
