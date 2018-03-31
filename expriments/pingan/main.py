@@ -2,6 +2,8 @@
 from __future__ import print_function
 import os,sys
 import csv
+from collections import Counter
+import time
 import pandas as pd
 import numpy as np
 from keras.models import Model
@@ -21,7 +23,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'debug':
     path_test = "test.csv"
 
 path_test_out = "model/"
-
+stat_y = [] 
 def normalize(row):
     """
     TIME      timestamp % 86400 / (60 * 5)
@@ -52,6 +54,8 @@ def data_reader(path, is_pred=False):
             x += (size - len(x)) * [[0,0,0,0,0,0,0]]
         return x[:size]
 
+    epoch_cnt = 0 
+
     while 1:
         f = open(path)
         i = 0
@@ -70,13 +74,19 @@ def data_reader(path, is_pred=False):
                 if is_pred:
                     yield (x, cur_id)
                 else:
-                    yield (x, y)
+                    yy = np.zeros(20)
+                    if epoch_cnt == 0:
+                        stat_y.append(int(round(y/0.5))) 
+                    max_y =min(10, int(round(y/0.5)))
+                    if not (max_y == 0 and np.random.random() > 0.05):
+                        yy[max_y] = 1
+                        yield (x, yy)
                 x = []
                 cur_id = item[0]
             x.append(normalize(np.array(item)[[1,3,4,5,6,7,8]]))
             if not is_pred:
                 y = float(item[-1])
-
+        epoch_cnt+=1
         f.close()
         if is_pred:
             yield (padding(x), cur_id)
@@ -103,9 +113,10 @@ def gru2(rnn_size=8):
     gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
     gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
     flatten = Flatten()(concatenate([gru_2, gru_2b]))
-    dense_1 = Dense(700, kernel_initializer='he_normal', name='dense_1')(flatten)
+    #flatten = Flatten()(input_data)
+    dense_1 = Dense(512, kernel_initializer='he_normal', name='dense_1')(flatten)
     dense_2 = Dense(128, kernel_initializer='he_normal', name='dense_2')(dense_1)
-    output = Dense(1, kernel_initializer='he_normal', name='output')(dense_2)
+    output = Dense(20,activation='softmax', kernel_initializer='he_normal', name='output')(dense_2)
     model = Model(inputs=input_data, outputs=output)
     if debug:
         model.summary()
@@ -115,8 +126,8 @@ def train():
     print('Train...')
     model = gru2()
     sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
-    model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
-    model.fit_generator(fit_data_reader(128), steps_per_epoch=100, epochs=5, verbose=1)
+    model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
+    model.fit_generator(fit_data_reader(128), steps_per_epoch=50, epochs=10, verbose=1)
     return model
 
 def predict(model):
@@ -124,7 +135,7 @@ def predict(model):
     scores = []
     for x_pred, Id in data_reader(path_test, is_pred=True):
         score = model.predict(np.array([x_pred]))
-        score = int(100*score[0][0])/100.0
+        score = np.argmax(score[0])*0.5
         score = max(0, score)
         if debug:
             print(Id, score)
@@ -147,4 +158,7 @@ def process():
 
 if __name__ == "__main__":
     print('Main...')
+    start_time = time.time()
     process()
+    print(Counter(stat_y))
+    print ('tot_time:',time.time() - start_time)
