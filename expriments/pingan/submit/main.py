@@ -26,6 +26,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'debug':
 
 path_test_out = "model/"
 stat_y = [] 
+stat_y_pred = []
 class_num = 1
 if debug:
     class_num = 1
@@ -111,25 +112,20 @@ def fit_data_reader(batch_size=256):
             X = []
             Y = []
 
-def gru2(rnn_size=16):
+def gru(rnn_size=16, depth=7):
     input_data = Input(name='input', shape=(700, 7), dtype='float32')
-    #mask = Masking(mask_value=0., input_shape=(700, 7))(input_data)
     inner = Dense(8, activation='relu', name='inner')(input_data)
-    gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
-    gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
-    gru1_merged = add([gru_1, gru_1b])
-    gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
-    gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
-    gru2_merged = add([gru_2, gru_2b])
-    gru_3 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru3')(gru2_merged)
-    gru_3b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru3_b')(gru2_merged)
-    flatten = Flatten()(concatenate([gru_3, gru_3b]))
-    #flatten = Flatten()(input_data)
+    for i in range(depth):
+        gru_forward = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal')(inner)
+        gru_backward = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal')(inner)
+        inner = add([gru_forward, gru_backward])
+
+    flatten = Flatten()(concatenate([gru_forward, gru_backward]))
     #bn = BatchNormalization()(flatten)
     #dense_1 = Dense(128, kernel_initializer='he_normal', name='dense_1', kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(bn)
     #dense_2 = Dense(32, kernel_initializer='he_normal', name='dense_2', kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(dense_1)
-    dense_1 = Dense(512, kernel_initializer='he_normal', name='dense_1')(flatten)
-    dense_2 = Dense(128, kernel_initializer='he_normal', name='dense_2')(dense_1)
+    dense_1 = Dense(128, kernel_initializer='he_normal', name='dense_1')(flatten)
+    dense_2 = Dense(16, kernel_initializer='he_normal', name='dense_2')(dense_1)
     output = Dense(class_num, kernel_initializer='he_normal', name='output')(dense_2)
     model = Model(inputs=input_data, outputs=output)
     if debug:
@@ -138,13 +134,13 @@ def gru2(rnn_size=16):
 
 def train():
     print('Train...')
-    model = gru2()
+    model = gru()
     adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     sgd = SGD(lr=0.02, decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     model.compile(optimizer=sgd, loss='mse', metrics=['accuracy'])
     batch_size = 128
     steps_per_epoch = 32
-    epochs = 5
+    epochs = 10
     if debug:
         batch_size = 32
         steps_per_epoch = 32
@@ -160,6 +156,7 @@ def predict(model):
         score = score[0][0]
         #score = np.argmax(score[0])*class_thr
         score = max(0, score)
+        stat_y_pred.append(int(score/0.25))
         if debug:
             print(Id, score)
         scores.append([Id, score])
@@ -183,5 +180,6 @@ if __name__ == "__main__":
     print('Main...')
     start_time = time.time()
     process()
-    print(Counter(stat_y))
+    #print(Counter(stat_y))
+    print(Counter(stat_y_pred))
     print ('tot_time:',time.time() - start_time)

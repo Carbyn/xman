@@ -114,22 +114,22 @@ def fit_data_reader(batch_size=256):
 def gru2(rnn_size=16):
     input_data = Input(name='input', shape=(700, 7), dtype='float32')
     #mask = Masking(mask_value=0., input_shape=(700, 7))(input_data)
-    inner = Dense(8, activation='relu', name='inner')(input_data)
-    gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
-    gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
-    gru1_merged = add([gru_1, gru_1b])
-    gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
-    gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
-    gru2_merged = add([gru_2, gru_2b])
-    gru_3 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru3')(gru2_merged)
-    gru_3b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru3_b')(gru2_merged)
-    flatten = Flatten()(concatenate([gru_3, gru_3b]))
-    #flatten = Flatten()(input_data)
+    #inner = Dense(8, activation='relu', name='inner')(input_data)
+    #gru_1 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru1')(inner)
+    #gru_1b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru1_b')(inner)
+    #gru1_merged = add([gru_1, gru_1b])
+    #gru_2 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru2')(gru1_merged)
+    #gru_2b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru2_b')(gru1_merged)
+    #gru2_merged = add([gru_2, gru_2b])
+    #gru_3 = GRU(rnn_size, return_sequences=True, kernel_initializer='he_normal', name='gru3')(gru2_merged)
+    #gru_3b = GRU(rnn_size, return_sequences=True, go_backwards=True, kernel_initializer='he_normal', name='gru3_b')(gru2_merged)
+    #flatten = Flatten()(concatenate([gru_3, gru_3b]))
+    flatten = Flatten()(input_data)
     #bn = BatchNormalization()(flatten)
     #dense_1 = Dense(128, kernel_initializer='he_normal', name='dense_1', kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(bn)
     #dense_2 = Dense(32, kernel_initializer='he_normal', name='dense_2', kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(dense_1)
-    dense_1 = Dense(512, kernel_initializer='he_normal', name='dense_1')(flatten)
-    dense_2 = Dense(128, kernel_initializer='he_normal', name='dense_2')(dense_1)
+    dense_1 = Dense(512, activation='relu', kernel_initializer='he_normal', name='dense_1')(flatten)
+    dense_2 = Dense(128, activation='relu', kernel_initializer='he_normal', name='dense_2')(dense_1)
     output = Dense(class_num, kernel_initializer='he_normal', name='output')(dense_2)
     model = Model(inputs=input_data, outputs=output)
     if debug:
@@ -148,7 +148,7 @@ def train():
     if debug:
         batch_size = 32
         steps_per_epoch = 32
-        epochs = 2
+        epochs = 3
     model.fit_generator(fit_data_reader(batch_size), steps_per_epoch=steps_per_epoch, epochs=epochs, verbose=1)
     return model
 
