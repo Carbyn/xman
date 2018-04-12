@@ -27,6 +27,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from keras.applications.mobilenet import MobileNet, preprocess_input
+from keras.applications.xception import Xception
 from keras.preprocessing import image
 from keras.models import Model
 from tqdm import tqdm
@@ -51,12 +52,12 @@ def main():
     date = '20180321'
 
     # Feature extraction model
-    base_model = MobileNet(include_top=True, weights=None,
-                           input_tensor=None, input_shape=None,
+    base_model = Xception(include_top=True, weights=None,
+                           input_tensor=None, input_shape=(72,72,3),
                            pooling=None, classes=classNum[superclass[0]])
     base_model.load_weights(model_weight)
     model = Model(inputs=base_model.input,
-                  outputs=base_model.get_layer('global_average_pooling2d_1').output)
+                  outputs=base_model.get_layer('avg_pool').output)
 
     imgdir_train = '../zsl_'+testName[superclass[0]]+'_'+str(superclass).lower()+'_train_'+date\
                      +'/zsl_'+testName[superclass[0]]+'_'+str(superclass).lower()+'_train_images_'+date
@@ -76,7 +77,7 @@ def main():
 
     print('Total image number = '+str(num))
 
-    features_all = np.ndarray((num, 1024))
+    features_all = np.ndarray((num, 2048))
     labels_all = list()
     images_all = list()
     idx = 0
@@ -97,7 +98,7 @@ def main():
                 continue
 
             img_path = classpath+'/'+eachimg
-            img = image.load_img(img_path, target_size=(224, 224))
+            img = image.load_img(img_path, target_size=(72, 72))
             x = image.img_to_array(img)
             x = np.expand_dims(x, axis=0)
             x = preprocess_input(x)
