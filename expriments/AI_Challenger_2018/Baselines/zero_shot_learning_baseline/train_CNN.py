@@ -29,6 +29,8 @@ from __future__ import division
 from __future__ import print_function
 from keras.preprocessing.image import ImageDataGenerator
 from keras.applications.mobilenet import MobileNet
+from keras.applications.inception_v3 import InceptionV3
+from keras.applications.xception import Xception
 from keras.callbacks import ModelCheckpoint
 from keras.optimizers import SGD
 import os
@@ -66,7 +68,7 @@ def main():
         os.mkdir('trainval_'+superclass)
         os.mkdir(trainpath)
         os.mkdir(valpath)
-        sourcepath = '../zsl_'+testName[superclass[0]]+'_'+str(superclass).lower()+'_train_'+date\
+        sourcepath = '../zsl_'+testName[superclass[0]]+'_'+str(superclass).lower()+'_train_'+date+'_crop'\
                      +'/zsl_'+testName[superclass[0]]+'_'+str(superclass).lower()+'_train_images_'+date
         categories = os.listdir(sourcepath)
         for eachclass in categories:
@@ -86,7 +88,7 @@ def main():
                     idx += 1
 
     # Train and validation ImageDataGenerator
-    batchsize = 32
+    batchsize = 16 
 
     train_datagen = ImageDataGenerator(
         rescale=1./255,
@@ -100,17 +102,17 @@ def main():
 
     train_generator = train_datagen.flow_from_directory(
         trainpath,
-        target_size=(224, 224),
+        target_size=(299, 299),
         batch_size=batchsize)
 
     valid_generator = test_datagen.flow_from_directory(
         valpath,
-        target_size=(224, 224),
+        target_size=(299, 299),
         batch_size=batchsize)
 
     # Train MobileNet
-    model = MobileNet(include_top=True, weights=None,
-                      input_tensor=None, input_shape=None,
+    model = Xception(include_top=True, weights=None,
+                      input_tensor=None, input_shape=(299,299,3),
                       pooling=None, classes=classNum[superclass[0]])
     model.summary()
     model.compile(optimizer=SGD(lr=lr, momentum=0.9),
@@ -121,8 +123,11 @@ def main():
 
     weightname = 'model/mobile_'+superclass+'_wgt.h5'
 
+    if os.path.exists(weightname):
+        model.load_weights(weightname)
+
     checkpointer = ModelCheckpoint(weightname, monitor='val_loss', verbose=0,
-                        save_best_only=True, save_weights_only=True, mode='auto', period=2)
+                        save_best_only=True, save_weights_only=True, mode='auto', period=1)
     model.fit_generator(
         train_generator,
         steps_per_epoch=steps_per_epoch,

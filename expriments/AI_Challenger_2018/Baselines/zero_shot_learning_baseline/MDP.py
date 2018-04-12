@@ -55,7 +55,7 @@ def main():
         print('Parameters error')
         exit()
 
-    file_feature = 'features_'+superclass+'.pickle'
+    file_feature = 'features_'+superclass+'_cluster.pickle'
 
     # The constants
     if superclass[0] == 'H':
