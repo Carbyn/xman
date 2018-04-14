@@ -28,8 +28,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from keras.preprocessing.image import ImageDataGenerator
-from keras.applications.mobilenet import MobileNet
-from keras.applications.inception_v3 import InceptionV3
 from keras.applications.xception import Xception
 from keras.callbacks import ModelCheckpoint
 from keras.optimizers import SGD
@@ -102,17 +100,17 @@ def main():
 
     train_generator = train_datagen.flow_from_directory(
         trainpath,
-        target_size=(299, 299),
+        target_size=(72, 72),
         batch_size=batchsize)
 
     valid_generator = test_datagen.flow_from_directory(
         valpath,
-        target_size=(299, 299),
+        target_size=(72, 72),
         batch_size=batchsize)
 
     # Train MobileNet
     model = Xception(include_top=True, weights=None,
-                      input_tensor=None, input_shape=(299,299,3),
+                      input_tensor=None, input_shape=(72,72,3),
                       pooling=None, classes=classNum[superclass[0]])
     model.summary()
     model.compile(optimizer=SGD(lr=lr, momentum=0.9),

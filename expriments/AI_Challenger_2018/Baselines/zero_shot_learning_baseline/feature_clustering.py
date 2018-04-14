@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
+"""
+python feature_clustering.py Animals
+"""
 
 from __future__ import absolute_import
 from __future__ import division

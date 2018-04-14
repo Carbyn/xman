@@ -56,6 +56,7 @@ def main():
         exit()
 
     file_feature = 'features_'+superclass+'_cluster.pickle'
+    file_feature = 'features_'+superclass+'.pickle'
 
     # The constants
     if superclass[0] == 'H':
