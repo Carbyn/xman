@@ -39,6 +39,7 @@ def main():
         print('Param error')
         exit()
 
+    cluster = 'KMeans'
     cluster = 'AC'
 
     classNum = {'Animals': 10, 'Fruits': 10}
