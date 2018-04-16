@@ -137,7 +137,7 @@ def main():
         attributes_test[i, :] = np.asarray(attributes[label])
 
     # Structure learning
-    LASSO = models.Lasso(alpha=0.01)
+    LASSO = models.Lasso(alpha=0.009)
     LASSO.fit(attributes_train.transpose(), attributes_test.transpose())
     W = LASSO.coef_
 
