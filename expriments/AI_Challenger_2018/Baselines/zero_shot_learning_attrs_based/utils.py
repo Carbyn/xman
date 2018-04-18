@@ -16,6 +16,20 @@ def calc_entropy(x):
 
     return ent
 
+def calc_attrs_entropy(label_attrs):
+    attrs = np.array(list(label_attrs.values()))
+    attrs_entropy = []
+    for i in range(attrs.shape[1]):
+        entropy = calc_entropy(attrs[:, i])
+        if entropy > 0:
+            entropy = 1.0
+        else:
+            entropy = 0
+        attrs_entropy.append(entropy)
+
+    #print(attrs_entropy)
+    return attrs_entropy
+
 def remove_low_entropy_attrs(label_attrs, entropy_thr=0.0):
     label_attrs_removed = {}
     valid_attr_idxes = []
@@ -24,7 +38,7 @@ def remove_low_entropy_attrs(label_attrs, entropy_thr=0.0):
     for i in range(attrs.shape[1]):
         entropy = calc_entropy(attrs[:, i])
         print(i, entropy)
-        if entropy >= entropy_thr:
+        if entropy > entropy_thr:
             valid_attr_idxes.append(i)
     for label, attrs in label_attrs.items():
         label_attrs_removed[label] = list(np.array(attrs)[valid_attr_idxes])
@@ -45,6 +59,6 @@ def attrs_reduce(class_attrs_path, superclass, entropy_thr = 0):
     for row in attrs:
         pair = row.strip().split(',')
         label_attrs[pair[0]] = list(map(lambda x: float(x), pair[1].strip().split(' ')[1:-1]))
-    label_attrs, label_attrs_idxes = remove_non_visible_attrs(label_attrs, superclass)
-    label_attrs, label_attrs_idxes = remove_low_entropy_attrs(label_attrs, entropy_thr)
+    #label_attrs, label_attrs_idxes = remove_non_visible_attrs(label_attrs, superclass)
+    #label_attrs, label_attrs_idxes = remove_low_entropy_attrs(label_attrs, entropy_thr)
     return label_attrs
