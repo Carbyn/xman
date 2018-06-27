@@ -71,6 +71,7 @@ class XmanDirectoryIterator(DirectoryIterator):
             for i, j in enumerate(index_array):
                 fname = self.filenames[j]
                 attrs = self._get_attrs(fname)
+                attrs = np.array(attrs)
                 batch_y.append(attrs)
         batch_y = np.array(batch_y)
         return batch_x, batch_y
@@ -86,12 +87,12 @@ class XmanDirectoryIterator(DirectoryIterator):
         img_class_name = '_'.join(fname.split('/')[0].split('_')[1:])
         superclass_prefix = '_'.join(fname.split('/')[0][0])
         if not hasattr(self,'attrs_map'):
-            superclass_map = {'A':'Animals', 'F':'Fruits'}
+            superclass_map = {'A':'Animals', 'F':'Fruits','V':'Vehicles','H':'Hairstyles','E':'Electronics'}
             superclass = superclass_map[superclass_prefix]
             self.attrs_map = {}
             date = '20180321'
-            attributes_path = '../zsl_a_%s_train_%s/zsl_a_%s_train_annotations_attributes_per_class_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
-            labels_list_path = '../zsl_a_%s_train_%s/zsl_a_%s_train_annotations_label_list_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
+            attributes_path = '../zsl_b_%s_train_%s/zsl_b_%s_train_annotations_attributes_per_class_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
+            labels_list_path = '../zsl_b_%s_train_%s/zsl_b_%s_train_annotations_label_list_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
             entropy_thr = 0 
 
             #获取标签名称到类别的映射

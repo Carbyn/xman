@@ -101,7 +101,8 @@ def main():
             img = image.load_img(img_path, target_size=(72, 72))
             x = image.img_to_array(img)
             x = np.expand_dims(x, axis=0)
-            x = preprocess_input(x)
+            #x = preprocess_input(x)
+            x = x/255.0 
             feature = model.predict(x)
 
             features_all[idx, :] = feature

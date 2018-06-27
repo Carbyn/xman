@@ -58,12 +58,12 @@ def main():
     testName = {'A': 'a', 'F': 'a', 'V': 'b', 'E': 'b', 'H': 'b'}
     date = '20180321'
 
-    classAttrsNums = {'Animals': 123, 'Fruits': 58}
+    classAttrsNums = {'Animals': 123, 'Fruits': 58, 'Hairstyles':22,'Vehicles':81,'Electronics':75}
     classAttrsNum = classAttrsNums[superclass]
 
     trainpath = 'trainval_'+superclass+'/train'
     valpath = 'trainval_'+superclass+'/val'
-    weightname = 'model/mobile_'+superclass+'_wgt.h5'
+    weightname = 'model/mobile_'+superclass+'_wgt_reduced.h5'
 
     if not os.path.exists('model'):
         os.mkdir('model')
@@ -138,7 +138,7 @@ def main():
     model.fit_generator(
         train_generator,
         steps_per_epoch=steps_per_epoch,
-        epochs=100,
+        epochs=25,
         validation_data=valid_generator,
         validation_steps=validation_steps,
         callbacks=[checkpointer])

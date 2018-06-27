@@ -71,17 +71,36 @@ def _eval_result(submit_file, reference_file):
         return result
 
     right_count = 0
-
+    stat = {}
+    tot  = {}
+    acc  = {}
     keys = tuple(submit_dict.keys())
     for (key, value) in ref_dict.items():
         if key not in keys:
             result['warning'] = 'lacking image in your submitted result'
             print('warning: lacking image %s in your submitted result' % key)
             continue
+        if value not in tot.keys():
+            tot[value]=0
+        tot[value]+=1
         if submit_dict[key] == value:
             right_count += 1
+            if value not in acc.keys():
+                acc[value]=0
+            acc[value]+=1
+        else :
+            print(key, 'r_'+value, 's_'+submit_dict[key])
+            if submit_dict[key] not in stat.keys():
+                stat[submit_dict[key]]=0
+            stat[submit_dict[key]]+=1
 
     result['score'] = str(float(right_count) / len(ref_dict))
+    print(stat)
+    for key,val in tot.items():
+        if key in acc:
+            print(key,acc[key]/val,val)
+        else :
+            print(key,0,val)
 
     return result
 

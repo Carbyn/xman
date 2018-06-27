@@ -39,8 +39,8 @@ def main():
         print('Param error')
         exit()
 
-    cluster = 'AC'
     cluster = 'KMeans'
+    cluster = 'AC'
 
     classNum = {'Animals': 10, 'Fruits': 10}
 
@@ -91,9 +91,9 @@ def main():
     fimages.write(json.dumps(images_cluster))
     fimages.close()
 
-    #feval = open('images_cluster_eval.json', 'w')
-    #feval.write(json.dumps(eval_cluster_result(superclass, images_cluster)))
-    #feval.close()
+    feval = open('images_cluster_eval.json', 'w')
+    feval.write(json.dumps(eval_cluster_result(superclass, images_cluster)))
+    feval.close()
 
     data_all = {'features_all':features_all, 'labels_all':labels_all,
                 'images_all':images_all}

@@ -32,12 +32,12 @@ def eval_acc(y_pred, ground_truth, abs_error=0.1):
 def main(superclass, model_weight, img_path, model=None):
     is_debug = False
     classNum = {'A': 40, 'F': 40, 'V': 40, 'E': 40, 'H': 24}
-    classAttrsNums = {'Animals': 123, 'Fruits': 58}
+    classAttrsNums = {'Animals': 123, 'Fruits': 58, 'Hairstyles':22,'Vehicles':81,'Electronics':75}
     classAttrsNum = classAttrsNums[superclass]
     date = '20180321'
 
-    class_attrs_path = '../zsl_a_%s_train_%s/zsl_a_%s_train_annotations_attributes_per_class_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
-    train_labels_path = '../zsl_a_%s_train_%s/zsl_a_%s_train_annotations_labels_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
+    class_attrs_path = '../zsl_b_%s_train_%s/zsl_b_%s_train_annotations_attributes_per_class_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
+    train_labels_path = '../zsl_b_%s_train_%s/zsl_b_%s_train_annotations_labels_%s.txt' % (superclass.lower(), date, superclass.lower(), date)
 
     fattrs = open(class_attrs_path, 'r', encoding='utf-8')
     attrs = fattrs.readlines()
@@ -53,7 +53,7 @@ def main(superclass, model_weight, img_path, model=None):
     train_labels = {} #{'img': [attr]}
     for row in labels:
         parts = row.strip().split(', ')
-        train_labels[parts[-1].split('/')[1]] = label_attrs_train[parts[1]]
+        train_labels[parts[-1].split('/')[-1]] = label_attrs_train[parts[1]]
 
     Y = {}
     img = image.load_img(img_path, target_size=(72, 72))
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         date = '20180321'
         val_dir = 'trainval_%s/val' % (superclass)
         classNum = {'A': 40, 'F': 40, 'V': 40, 'E': 40, 'H': 24}
-        classAttrsNums = {'Animals': 123, 'Fruits': 58}
+        classAttrsNums = {'Animals': 123, 'Fruits': 58, 'Hairstyles':22,'Vehicles':81,'Electronics':75}
         classAttrsNum = classAttrsNums[superclass]
 
         base_model = Xception(include_top=True, weights=None,
@@ -129,7 +129,7 @@ if __name__ == "__main__":
             fsave.write(str(k)+' '+str(v/count)+'\n')
         fsave.close()
 
-        stat(val_acc_path)
+        #stat(val_acc_path)
 
     else:
         print('Param error')
